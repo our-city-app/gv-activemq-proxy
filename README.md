@@ -43,7 +43,7 @@ FLASK_ENV = development
 FLASK_DEBUG = 1
 ACTIVEMQ_SERVER_HOSTNAME = ....
 # ...plus the other env variables
-python -m flask run
+python app/main.py
 ```
 
 ### Production:

@@ -19,7 +19,7 @@ import logging
 
 import aiohttp
 
-from config import WEBHOOK_BASE_URL, WEBHOOK_MESSAGE_PATH, TOPICS_PATH
+from config import WEBHOOK_BASE_URL, WEBHOOK_MESSAGE_PATH, TOPICS_PATH, WEBHOOK_SECRET
 
 
 async def get_topics():
@@ -29,15 +29,17 @@ async def get_topics():
             return await response.json()
 
 
-def send_request(data: str):
+def send_request(integration_id: int, data: str):
     try:
-        asyncio.run(_send_request(data))
+        asyncio.run(_send_request(integration_id, data))
     except Exception:
         logging.exception('Could not send request')
         # TODO retry
 
 
-async def _send_request(data: str):
+async def _send_request(integration_id: int, data: str):
     async with aiohttp.ClientSession() as session:
-        async with session.request('POST', WEBHOOK_BASE_URL + WEBHOOK_MESSAGE_PATH, data=data) as response:
+        url = f'{WEBHOOK_BASE_URL}{WEBHOOK_MESSAGE_PATH}/{integration_id}'
+        headers = {'Authorization': WEBHOOK_SECRET}
+        async with session.request('POST', url, data=data, headers=headers) as response:
             response.raise_for_status()

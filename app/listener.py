@@ -24,14 +24,17 @@ from stomp import ConnectionListener, StompConnection12
 from webhooks import send_request, get_topics
 
 SUB_ID = 'subscription-%s'
+TOPICS_MAPPING = {}
 
 
-def subscribe(connection: StompConnection12, topic: str):
-    logging.info(f'Subscribing to {topic}')
+def subscribe(connection: StompConnection12, integration_id: int, topic: str):
+    TOPICS_MAPPING[topic] = integration_id
+    logging.info(f'Subscribing to {topic} for integration {integration_id}')
     connection.subscribe(topic, SUB_ID % topic)
 
 
-def unsubscribe(connection: StompConnection12, topic: str):
+def unsubscribe(connection: StompConnection12, integration_id: int, topic: str):
+    del TOPICS_MAPPING[topic]
     logging.info(f'Unsubscribing to {topic}')
     connection.unsubscribe(SUB_ID % topic)
 
@@ -40,7 +43,7 @@ async def setup_subscriptions(connection: StompConnection12):
     logging.debug('Setting up subscriptions')
     try:
         for topic in await get_topics():
-            subscribe(connection, topic)
+            subscribe(connection, topic['integration_id'], topic['name'])
     except ClientResponseError:
         logging.exception('Could not fetch topics')
         sys.exit(1)
@@ -94,7 +97,9 @@ class GVListener(ConnectionListener):
         :param body: the frame's payload - the message body.
         """
         logging.info('Received message %s', body)
-        send_request(body)
+        topic = headers['destination']
+        integration_id = TOPICS_MAPPING[topic]
+        send_request(integration_id, body)
 
     def on_error(self, headers, body):
         """

@@ -19,7 +19,8 @@ import logging
 import stomp
 from flask import Flask, request, Response
 
-from config import WEBHOOK_SECRET, ACTIVEMQ_SERVER_USERNAME, ACTIVEMQ_SERVER_PASSWORD, ACTIVEMQ_SERVER_HOSTNAME, ACTIVEMQ_SERVER_PORT
+from config import WEBHOOK_SECRET, ACTIVEMQ_SERVER_USERNAME, ACTIVEMQ_SERVER_PASSWORD, ACTIVEMQ_SERVER_HOSTNAME, \
+    ACTIVEMQ_SERVER_PORT
 from listener import GVListener, unsubscribe, subscribe
 
 logging.getLogger().setLevel(logging.DEBUG)
@@ -44,21 +45,25 @@ def _validate_request() -> bool:
 def on_topic_changed():
     if not _validate_request():
         return Response(status=401)
+    integration_id = request.json.get('integration_id')
     topic = request.json.get('topic')
     command = request.json.get('command')
     if not topic or not command:
         return Response('Invalid request, expected \'topic\' and \'command\' in body', status=400)
     if command == 'subscribe':
-        subscribe(conn, topic)
+        subscribe(conn, integration_id, topic)
     elif command == 'unsubscribe':
-        unsubscribe(conn, topic)
+        unsubscribe(conn, integration_id, topic)
     return Response(status=204)
 
 
-conn = stomp.StompConnection12(host_and_ports=[(ACTIVEMQ_SERVER_HOSTNAME, int(ACTIVEMQ_SERVER_PORT))])
-conn.set_listener('listener name', GVListener(conn))
-conn.connect(ACTIVEMQ_SERVER_USERNAME, ACTIVEMQ_SERVER_PASSWORD, wait=True)
+with app.app_context():
+    conn = stomp.StompConnection12(host_and_ports=[(ACTIVEMQ_SERVER_HOSTNAME, int(ACTIVEMQ_SERVER_PORT))],
+                                   keepalive=True)
+    conn.set_listener('listener name', GVListener(conn))
+    conn.connect(ACTIVEMQ_SERVER_USERNAME, ACTIVEMQ_SERVER_PASSWORD, wait=True)
 
 if __name__ == '__main__':
     # Only for debugging while developing
-    app.run(host='0.0.0.0', debug=True, port=80)
+    # use_reloader=False is needed otherwise the connection above will be setup twice, for some reason.
+    app.run(host='0.0.0.0', debug=True, port=80, use_reloader=False)
