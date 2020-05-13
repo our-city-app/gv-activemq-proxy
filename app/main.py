@@ -26,7 +26,10 @@ from config import WEBHOOK_SECRET, ACTIVEMQ_SERVER_USERNAME, ACTIVEMQ_SERVER_PAS
     ACTIVEMQ_SERVER_PORT
 from listener import GVListener, unsubscribe, subscribe
 
-logging.getLogger().setLevel(logging.DEBUG)
+root = logging.getLogger()
+root.name = 'gv-activemq-proxy'
+root.setLevel(logging.DEBUG)
+
 app = Flask(__name__)
 
 q = Queue()
@@ -82,6 +85,5 @@ with app.app_context():
     thread.start()
 
 if __name__ == '__main__':
-    # Only for debugging while developing
     # use_reloader=False is needed otherwise the connection above will be setup twice, for some reason.
     app.run(host='0.0.0.0', debug=True, port=80, use_reloader=False)
