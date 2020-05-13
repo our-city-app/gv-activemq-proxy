@@ -21,6 +21,7 @@ import sys
 from aiohttp import ClientResponseError
 from stomp import ConnectionListener, StompConnection12
 
+from config import ACTIVEMQ_SERVER_USERNAME, ACTIVEMQ_SERVER_PASSWORD
 from webhooks import send_request, get_topics
 
 SUB_ID = 'subscription-%s'
@@ -88,6 +89,7 @@ class GVListener(ConnectionListener):
         the connection until it has been reestablished.
         """
         logging.info('Disconnected!')
+        self.connection.connect(ACTIVEMQ_SERVER_USERNAME, ACTIVEMQ_SERVER_PASSWORD)
 
     def on_message(self, headers, body):
         """

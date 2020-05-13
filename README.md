@@ -27,7 +27,7 @@ services:
       - WEBHOOK_BASE_URL=http://some-host.domain.com/api/plugins/reports/v1.0
       - WEBHOOK_SECRET=webhook shared secret
       - FLASK_DEBUG=1
-    command: flask run --host=0.0.0.0 --port=80
+    command: python main.py --host=0.0.0.0 --port=80
 ```
 
 Then start a development server:

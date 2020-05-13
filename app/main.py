@@ -15,6 +15,9 @@
 #
 # @@license_version:1.5@@
 import logging
+import threading
+import time
+from queue import Queue
 
 import stomp
 from flask import Flask, request, Response
@@ -25,6 +28,8 @@ from listener import GVListener, unsubscribe, subscribe
 
 logging.getLogger().setLevel(logging.DEBUG)
 app = Flask(__name__)
+
+q = Queue()
 
 
 @app.route('/')
@@ -50,18 +55,31 @@ def on_topic_changed():
     command = request.json.get('command')
     if not topic or not command:
         return Response('Invalid request, expected \'topic\' and \'command\' in body', status=400)
-    if command == 'subscribe':
-        subscribe(conn, integration_id, topic)
-    elif command == 'unsubscribe':
-        unsubscribe(conn, integration_id, topic)
+    q.put([command, integration_id, topic])
     return Response(status=204)
 
 
-with app.app_context():
+def setup_connection(q: Queue):
+    logging.info('Starting stomp connection on thread: %s', threading.current_thread())
     conn = stomp.StompConnection12(host_and_ports=[(ACTIVEMQ_SERVER_HOSTNAME, int(ACTIVEMQ_SERVER_PORT))],
                                    keepalive=True)
     conn.set_listener('listener name', GVListener(conn))
     conn.connect(ACTIVEMQ_SERVER_USERNAME, ACTIVEMQ_SERVER_PASSWORD, wait=True)
+    while True:
+        # Infinite loop - execute commands as they arrive from the server
+        time.sleep(1)
+        item = q.get()
+        if item:
+            command, integration_id, topic = item
+            if command == 'subscribe':
+                subscribe(conn, integration_id, topic)
+            elif command == 'unsubscribe':
+                unsubscribe(conn, integration_id, topic)
+
+
+with app.app_context():
+    thread = threading.Thread(target=setup_connection, args=[q])
+    thread.start()
 
 if __name__ == '__main__':
     # Only for debugging while developing
