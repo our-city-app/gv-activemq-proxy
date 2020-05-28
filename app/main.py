@@ -64,8 +64,10 @@ def on_topic_changed():
 
 def setup_connection(q: Queue):
     logging.info('Starting stomp connection on thread: %s', threading.current_thread())
+    our_heartbeat_rate = 60000  # our server sends heartbeat every 60 seconds
+    their_heartbeat_rate = 0  # their server does nothing
     conn = stomp.StompConnection12(host_and_ports=[(ACTIVEMQ_SERVER_HOSTNAME, int(ACTIVEMQ_SERVER_PORT))],
-                                   keepalive=True)
+                                   keepalive=True, heartbeats=(our_heartbeat_rate, their_heartbeat_rate))
     conn.set_listener('listener name', GVListener(conn))
     conn.connect(ACTIVEMQ_SERVER_USERNAME, ACTIVEMQ_SERVER_PASSWORD, wait=True)
     while True:
