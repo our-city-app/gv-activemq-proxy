@@ -29,4 +29,4 @@ WEBHOOK_MESSAGE_PATH = os.getenv('WEBHOOK_MESSAGE_PATH', '/green-valley/message'
 # Shared secret between this server and the server which receives the messages
 WEBHOOK_SECRET = os.getenv('WEBHOOK_SECRET')
 # Path appended to WEBHOOK_BASE_URL where topics will be fetched from
-TOPICS_PATH = os.getenv('TOPICS_PATH', '/green-valley/topics')
+TOPICS_PATH = os.getenv('TOPICS_PATH', '/green-valley/topics/dev')
